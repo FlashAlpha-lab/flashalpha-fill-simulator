@@ -1,6 +1,6 @@
 # Fill Simulator — Spec
 
-A specification of the entry and exit fill simulator embedded in `intraday_bt_ev_rank.py`. Written for someone reading it cold — to audit, port, or replace it.
+Public behavioral contract for `flashalpha-fill-simulator`. Written for someone reading it cold - to audit, port, or embed it in another backtest engine.
 
 ---
 
@@ -15,7 +15,7 @@ Most options-credit-spread backtests fill at mid (or at bid/ask without queueing
 - Multi-expiry timeline merging (for cross-tenor candidate pools)
 - Deterministic random tiebreak (to defend against EV-oracle leakage)
 
-The simulator is **side-effect free** within a single trade attempt. It reads from a SQL-queryable 1-min option chain (we use QuestDB; any DB returning `(ts, strike, bid, ask)` rows will do) and returns a tuple describing the fill. Nothing else mutates.
+The simulator is **side-effect free** within a single trade attempt. The per-bar primitive reads a caller-supplied chain snapshot; the loop wrapper reads through a `ChainProvider` such as the in-memory or CSV provider. Nothing else mutates.
 
 ---
 
@@ -27,7 +27,7 @@ The simulator is **side-effect free** within a single trade attempt. It reads fr
 SELECT ts, strike, bid, ask
 FROM options_<symbol>
 WHERE ts BETWEEN <start> AND <deadline>
-  AND right = 'PUT'
+  AND right = <right>
   AND expiration = <expiry>
   AND strike IN (<requested_strikes>)
 ORDER BY ts, strike
@@ -60,15 +60,15 @@ A `list[SpreadCandidate]`, each carrying:
  mid_at_fill: float)       # combo-mid at the fill bar; enables edge_captured = fill_price - mid_at_fill
 ```
 
-**`near_misses` semantics:** counted *per candidate per bar*, not per bar. If 5 candidates each reach their limit but don't clear `limit + FILL_EPSILON` in the same bar, `near_misses` increments by 5. This is a diagnostic of "how many limit orders were *almost* filled across the wait window," not "how many bars had at least one near-miss." Implementation: [intraday_bt_ev_rank.py:445](e:/repos/tecware/MC/SpyIntradayBacktest/intraday_bt_ev_rank.py#L445).
+**`near_misses` semantics:** counted *per candidate per bar*, not per bar. If 5 candidates each reach their limit but don't clear `limit + FILL_EPSILON` in the same bar, `near_misses` increments by 5. This is a diagnostic of "how many limit orders were *almost* filled across the wait window," not "how many bars had at least one near-miss."
 
-**Timezone:** chain timestamps from the database are parsed via `datetime.fromisoformat(ts_str.replace("Z", ""))` ([intraday_bt_ev_rank.py:420](e:/repos/tecware/MC/SpyIntradayBacktest/intraday_bt_ev_rank.py#L420)) — i.e. **naive datetimes** (no tzinfo). Callers must pass naive `posted_ts` matching the database's wall-clock convention (we use ET wall-clock, naive). Mixing tz-aware and naive datetimes will raise. A future revision should canonicalize on tz-aware datetimes throughout.
+**Timezone:** provider timestamps are ordinary Python `datetime` values. Callers should keep `posted_ts` and provider quote timestamps consistently naive or consistently tz-aware; Python will raise if naive and aware datetimes are ordered together. The same-bar tiebreak seed treats naive datetimes as UTC-like wall-clock values and normalizes aware datetimes to UTC, so deterministic ties do not depend on the local timezone of the machine running the simulation.
 
 `None` if no candidate fills before `posted_ts + FILL_MAX_WAIT_MINS`.
 
 ---
 
-## 2. Entry simulator — `simulate_fills(posted_ts, expiry, candidates) → Optional[tuple]`
+## 2. Entry simulator - `simulate_fills(posted_ts, candidates, provider) -> FillResult`
 
 ### 2.1 Algorithm
 
@@ -92,7 +92,7 @@ A `list[SpreadCandidate]`, each carrying:
        elif combo_bid >= candidate.limit_credit:
          near_misses += 1
      if any candidates collected this bar:
-       random.Random(int(ts.timestamp())).shuffle(collected)
+       random.Random(_bar_seed(ts)).shuffle(collected)
        winner = collected[0]
        return (winner, ts, winner.limit_credit, ⌊(ts-posted_ts)/60⌋, near_misses, mid_at_winner)
 6. Loop ends with no fill → return None.
@@ -101,7 +101,7 @@ A `list[SpreadCandidate]`, each carrying:
 ### 2.2 Behaviour notes
 
 - **First-fill-wins, not best-fill-wins.** Ranking happened at *posting* time; once posted, the simulator never re-ranks. This matches reality: you don't pull a posted limit just because a different one became more attractive — your queue position is gone.
-- **Tiebreak is deterministic but not EV-aware.** When multiple candidates cross within the same 1-min bar, `random.Random(int(ts.timestamp())).shuffle()` picks one. Seeded by the bar timestamp so re-runs produce identical results, but the seed is *independent of candidate EV*. This was a deliberate change after an earlier version that EV-sorted ties — that's a forward-looking oracle that inflated win rates. **Note:** the shuffled list is built by iterating `by_expiry.items()` then `for cand in cands` — the *post-shuffle* outcome is deterministic but the *pre-shuffle* order depends on dict iteration order. A regression test should lock this so future refactors can't accidentally restore EV-sorted ordering.
+- **Tiebreak is deterministic but not EV-aware.** When multiple candidates cross within the same bar, `random.Random(_bar_seed(ts)).shuffle()` picks one. Seeded by the bar timestamp so re-runs produce identical results, but the seed is *independent of candidate EV* and stable across machine time zones. This was a deliberate change after an earlier version that EV-sorted ties - that's a forward-looking oracle that inflated win rates.
 - **Multi-expiry merge produces a single timeline.** If candidate A in the 30-DTE chain crosses at 10:23 and candidate B in the 60-DTE chain crosses at 10:21, B wins. The merged timeline ensures we never accidentally favor the chain we read first.
 - **Fill price = limit, never better.** Even if `combo_bid` crossed the limit by $0.10, we report the fill at `limit_credit`. Real markets fill at the limit price — the surplus goes to the counterparty.
 - **`mid_at_fill` is reported separately from `fill_price`.** Downstream `edge_captured = fill_price - mid_at_fill` lets us measure post-hoc whether we earned spread (positive) or paid for liquidity (negative). On our data the mean is ~−$0.04 to −$0.07 — we lose at the fill, win on theta during the hold.
@@ -193,7 +193,7 @@ Toggling `EXIT_MODE` is a useful sensitivity test: if a strategy looks great in 
 
 ## 5. Constants reference
 
-All in `intraday_bt_ev_rank.py`. Values listed are current production defaults.
+All entry/exit tunables live in `fillsim.Config`. Values listed are current package defaults.
 
 ### Entry-side
 
@@ -231,7 +231,7 @@ All in `intraday_bt_ev_rank.py`. Values listed are current production defaults.
 
 ## 6. Determinism & reproducibility
 
-- **Seeded tiebreak**: `random.Random(int(ts.timestamp())).shuffle()` — same posting timestamp + same candidate list ⇒ same winner.
+- **Seeded tiebreak**: `random.Random(_bar_seed(ts)).shuffle()` - same posting timestamp + same candidate list implies the same winner.
 - **No global RNG calls.** The simulator uses a fresh `random.Random(seed)` per tiebreak invocation; it does not consume `random.random()` from the module-level RNG. Re-running the same `(posted_ts, candidates)` produces an identical fill regardless of what the rest of the engine does between calls.
 - **No wall-clock dependencies.** Everything keys off the data timestamps.
 - **Quote-data version**: results are reproducible only against the same chain snapshot. Vendor revisions/restatements will change outputs; we recommend pinning the QuestDB partition the chain was loaded from.
@@ -273,22 +273,22 @@ These flow into `<label>_summary.json` after a backtest completes. They let you 
 
 ---
 
-## 9. Recommended unit tests (not yet written)
+## 9. Regression coverage
 
-The simulator currently has no test suite. These are the cases worth covering before any open-source release. Each takes a synthetic chain dict — no DB needed:
+The package ships with synthetic-chain tests, provider tests, wrapper tests, and property-based invariants. The important behavior locked by CI includes:
 
-1. **First-fill-wins** — two candidates, one crosses at bar 3, another at bar 5; assert bar-3 candidate wins.
-2. **`FILL_EPSILON` gating** — `combo_bid == limit` exactly → no fill.
-3. **`MIN_EDGE_FLOOR` rejection** — combo crosses but mid moved through limit by more than $0.05 → fill rejected.
-4. **Random tiebreak determinism** — same `posted_ts` → same winner across two calls; different posted_ts → different winner (most of the time).
-5. **Multi-expiry merge** — candidates from expiry A and B; A crosses at minute 2, B at minute 4 → A wins regardless of insertion order.
-6. **`FILL_MAX_REL_SPREAD` filter** — bar with `(ask-bid)/mid > 0.5` is invisible to the fill check even if `combo_bid ≥ limit`.
-7. **No-fill cancellation** — 30 bars elapse, no cross → returns `None`; `near_misses` count is correct.
-8. **Patient exit, limit fills** — combo_ask drops to trigger-mid within 5 bars → close at limit, reason=`pt`.
-9. **Patient exit, market-out** — combo_ask never drops → close at deadline-bar combo_ask, reason=`pt_x`.
-10. **Expiry settlement** — spot below long strike → `pnl = entry_credit − width`; spot above short → `pnl = entry_credit`; between → linear interpolation. Spot fallback chain (T-1min, T-15min, abort).
+1. **First-fill-wins** - earlier bars beat later bars across the merged provider timeline.
+2. **`FILL_EPSILON` gating** - `combo_bid == limit` is a near miss, not a fill.
+3. **`MIN_EDGE_FLOOR` rejection** - stale crosses are rejected when the combo mid moved too far through the posted limit.
+4. **Random tiebreak determinism** - same bar timestamp gives the same winner without consuming global random state, and the seed is stable across local time zones.
+5. **Multi-expiry merge** - candidates from different expiries share one chronological timeline.
+6. **`FILL_MAX_REL_SPREAD` filter** - wide, crossed, missing, or non-positive quotes are invisible to fills.
+7. **No-fill cancellation** - finite wait windows return an unfilled result with accumulated near misses.
+8. **Patient exit realism** - the exit limit stays fixed at trigger-mid, fills through `combo_ask <= limit`, or markets out as `pt_x` / `sl_x`.
+9. **Expiry settlement** - max profit, max loss, in-spread interpolation, abort behavior, and settlement invariants are covered.
+10. **Provider adapters** - in-memory and CSV providers are exercised through the shared `ChainProvider` contract.
 
-Each is ~20 lines of pytest. CI gate would catch the next "tiebreak became EV-sorted again" regression in seconds rather than days.
+CI runs ruff, format checks, pytest, coverage, and type checks so behavioral regressions and open-source packaging issues are caught before release.
 
 ---
 
@@ -298,7 +298,7 @@ Each is ~20 lines of pytest. CI gate would catch the next "tiebreak became EV-so
 2. **Single-symbol option chain only.** No basket/portfolio fills, no correlated-leg fills across symbols.
 3. **No commissions.** Trivially fixable; we just haven't bothered because they're a flat tax that doesn't change strategy ranking.
 4. **No paper-trading parity check.** Until we run the same orders against a real broker and compare simulated vs realized fill prices, the simulator is *plausible* but not *validated*. This is the single most important missing test.
-5. **Test suite.** See §9. Should exist before public release.
+5. **Paper-trading calibration dataset.** The unit suite verifies contracts and edge cases; the next validation step is comparing simulated fills with realized broker fills.
 
 ---
 

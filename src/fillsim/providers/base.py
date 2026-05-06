@@ -3,11 +3,13 @@
 A provider is anything with ``get_quotes()`` and ``get_spot()``. Structural
 typing (PEP 544) — no need to subclass.
 """
+
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Iterable, Literal, Protocol, runtime_checkable
+from typing import Literal, Protocol, runtime_checkable
 
 
 @dataclass(frozen=True)

@@ -6,9 +6,11 @@ resolution-agnostic: it walks whatever timestamps the chain provider returns,
 so the same Config works for 1-min bars, EOD bars, or tick data — you just
 adjust `fill_max_wait_bars` / `exit_max_wait_bars` to match your resolution.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 
 VALID_EXIT_MODES = ("patient", "mid", "ask")
 
@@ -64,13 +66,22 @@ class Config:
     - "ask": always cross spread on close (pessimistic baseline)."""
 
     def __post_init__(self) -> None:
+        for name, value in (
+            ("fill_epsilon", self.fill_epsilon),
+            ("fill_max_rel_spread", self.fill_max_rel_spread),
+            ("min_edge_floor", self.min_edge_floor),
+        ):
+            if not isfinite(value):
+                raise ValueError(f"{name} must be finite")
         if self.exit_mode not in VALID_EXIT_MODES:
-            raise ValueError(
-                f"exit_mode must be one of {VALID_EXIT_MODES}, got {self.exit_mode!r}"
-            )
+            raise ValueError(f"exit_mode must be one of {VALID_EXIT_MODES}, got {self.exit_mode!r}")
         if self.fill_max_wait_bars < 1:
             raise ValueError("fill_max_wait_bars must be >= 1")
         if self.exit_max_wait_bars < 0:
             raise ValueError("exit_max_wait_bars must be >= 0")
         if self.start_offset_bars < 0:
             raise ValueError("start_offset_bars must be >= 0")
+        if self.fill_epsilon < 0:
+            raise ValueError("fill_epsilon must be >= 0")
+        if self.fill_max_rel_spread < 0:
+            raise ValueError("fill_max_rel_spread must be >= 0")

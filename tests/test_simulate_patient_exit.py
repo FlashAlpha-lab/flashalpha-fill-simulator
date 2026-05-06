@@ -1,4 +1,5 @@
 """Tests for ``simulate_patient_exit``."""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -172,7 +173,7 @@ def test_patient_limit_stays_fixed_at_trigger_mid_no_walk_down():
     cfg = Config(exit_max_wait_bars=5)
     res = simulate_patient_exit(path, 0.60, 0.50, 1.0, cfg)
     assert res is not None
-    assert res.reason is ExitReason.PT_X      # market-out, not fill
+    assert res.reason is ExitReason.PT_X  # market-out, not fill
     assert res.exit_credit == pytest.approx(0.31)
 
 

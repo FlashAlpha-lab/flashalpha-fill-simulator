@@ -5,10 +5,15 @@ PT/SL transitions. Calibrated against 1-min SPY option chain data; the
 fill_max_rel_spread default of 0.50 is generous and may need tightening for
 less-liquid underlyings.
 """
+
 from __future__ import annotations
 
 
-def quote_passes_filter(bid: float, ask: float, max_rel_spread: float) -> bool:
+def quote_passes_filter(
+    bid: float | None,
+    ask: float | None,
+    max_rel_spread: float,
+) -> bool:
     """Return True if (bid, ask) is a usable quote.
 
     Rejects:
@@ -29,7 +34,7 @@ def quote_passes_filter(bid: float, ask: float, max_rel_spread: float) -> bool:
     return True
 
 
-def mid_sanity(bid: float, ask: float) -> float | None:
+def mid_sanity(bid: float | None, ask: float | None) -> float | None:
     """Return mid price if the quote passes basic sanity, else None.
 
     Used by ``monitor_path``-style callers that need a mid value or skip

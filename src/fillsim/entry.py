@@ -13,11 +13,14 @@ Two layers, both public:
   ``simulate_fill`` once per bar until a fill happens or the deadline passes.
   Use this for offline backtests where you have all the data up-front.
 """
+
 from __future__ import annotations
 
 import random
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from calendar import timegm
+from collections.abc import Sequence
+from datetime import date, datetime, timedelta, timezone
+from typing import TYPE_CHECKING, Literal
 
 from fillsim.config import Config
 from fillsim.core import (
@@ -37,10 +40,11 @@ if TYPE_CHECKING:
 # Per-bar primitive — the headline API.
 # ---------------------------------------------------------------------------
 
+
 def simulate_fill(
     bar_ts: datetime,
     chain: ChainSnapshot,
-    candidates: list[Spread],
+    candidates: Sequence[Spread],
     config: Config | None = None,
 ) -> BarResult:
     """Evaluate one bar's chain against a list of open limit candidates.
@@ -65,10 +69,12 @@ def simulate_fill(
       candidates touched their limit without clearing ``limit + epsilon``.
 
     **Determinism contract.** When multiple candidates cross the same bar,
-    the winner is chosen by ``random.Random(int(bar_ts.timestamp())).shuffle``
-    — seeded by the bar timestamp, *not by candidate EV*. Re-runs against
-    the same bar produce the same winner. This is deliberate: any EV-aware
-    tiebreak is a forward-looking oracle and inflates win rates.
+    the winner is chosen by ``random.Random(_bar_seed(bar_ts)).shuffle``:
+    seeded by the bar timestamp, *not by candidate EV*. Naive datetimes are
+    treated as UTC-like wall-clock values so the seed is stable across machine
+    time zones. Re-runs against the same bar produce the same winner. This is
+    deliberate: any EV-aware tiebreak is a forward-looking oracle and inflates
+    win rates.
 
     **Quote-quality filter.** Quotes that fail
     ``filters.quote_passes_filter`` (negative bid/ask, crossed market,
@@ -90,18 +96,16 @@ def simulate_fill(
 
     for cand in candidates:
         if cand.expiry is None:
-            raise ValueError(
-                f"Spread {cand.name} has no expiry; cannot resolve chain lookup"
-            )
+            raise ValueError(f"Spread {cand.name} has no expiry; cannot resolve chain lookup")
         sk = cand.short.strike
         lk = cand.long.strike
-        s = chain.get((cand.expiry, sk))
-        l = chain.get((cand.expiry, lk))
-        if s is None or l is None:
+        short_quote = chain.get((cand.expiry, sk))
+        long_quote = chain.get((cand.expiry, lk))
+        if short_quote is None or long_quote is None:
             continue  # leg missing at this bar
 
-        s_bid, s_ask = s
-        l_bid, l_ask = l
+        s_bid, s_ask = short_quote
+        l_bid, l_ask = long_quote
         if not (
             quote_passes_filter(s_bid, s_ask, cfg.fill_max_rel_spread)
             and quote_passes_filter(l_bid, l_ask, cfg.fill_max_rel_spread)
@@ -129,7 +133,7 @@ def simulate_fill(
     # Deterministic but EV-blind tiebreak. Seeded by the bar timestamp so
     # re-runs are reproducible. The local Random instance does NOT consume
     # global random state, so callers who use random.* elsewhere are unaffected.
-    rng = random.Random(int(bar_ts.timestamp()))
+    rng = random.Random(_bar_seed(bar_ts))
     rng.shuffle(fill_here)
     winner_cand, winner_price, winner_mid = fill_here[0]
     return BarResult(
@@ -147,13 +151,15 @@ def simulate_fill(
 # Loop-driving convenience wrapper.
 # ---------------------------------------------------------------------------
 
+
 def simulate_fills(
     posted_ts: datetime,
-    candidates: list[Spread],
+    candidates: Sequence[Spread],
     provider: ChainProvider,
     config: Config | None = None,
     *,
     bar_step: timedelta | None = None,
+    right: Literal["PUT", "CALL"] = "PUT",
 ) -> FillResult:
     """Walk bars from ``posted_ts`` until a fill occurs or the wait window expires.
 
@@ -170,6 +176,8 @@ def simulate_fills(
     All bars whose timestamps fall in that range are walked in order. The
     simulator queries the provider once per expiry for all timestamps and
     relevant strikes within the range, then iterates the merged timeline.
+    ``right`` selects which option side the provider should return; callers
+    using the per-bar primitive should pre-filter the chain themselves.
     """
     cfg = config if config is not None else Config()
     if not candidates:
@@ -181,19 +189,20 @@ def simulate_fills(
     deadline_ts = posted_ts + bar_step * (cfg.start_offset_bars + cfg.fill_max_wait_bars - 1)
 
     # Group candidates by expiry so each chain query is scoped tightly.
-    by_expiry: dict = {}
+    by_expiry: dict[date, list[Spread]] = {}
     for c in candidates:
-        if c.expiry is None:
+        expiry = c.expiry
+        if expiry is None:
             raise ValueError(f"Spread {c.name} has no expiry; required for simulate_fills")
-        by_expiry.setdefault(c.expiry, []).append(c)
+        by_expiry.setdefault(expiry, []).append(c)
 
     # quotes[expiry][ts][strike] = (bid, ask)
-    quotes_by_expiry: dict = {}
+    quotes_by_expiry: dict[date, dict[datetime, dict[float, tuple[float, float]]]] = {}
     all_timestamps: set[datetime] = set()
     for exp, cands in by_expiry.items():
         strikes = sorted({c.short.strike for c in cands} | {c.long.strike for c in cands})
-        rows = list(provider.get_quotes(start_ts, deadline_ts, exp, strikes))
-        per_ts: dict = {}
+        rows = list(provider.get_quotes(start_ts, deadline_ts, exp, strikes, right=right))
+        per_ts: dict[datetime, dict[float, tuple[float, float]]] = {}
         for q in rows:
             per_ts.setdefault(q.ts, {})[q.strike] = (q.bid, q.ask)
         quotes_by_expiry[exp] = per_ts
@@ -203,7 +212,7 @@ def simulate_fills(
     bars_seen = 0
     for ts in sorted(all_timestamps):
         # Build the merged ChainSnapshot for this bar across all expiries
-        snapshot: ChainSnapshot = {}
+        snapshot: dict[tuple[date, float], tuple[float, float]] = {}
         for exp, per_ts in quotes_by_expiry.items():
             row = per_ts.get(ts)
             if row is None:
@@ -239,12 +248,20 @@ class EntrySimulator:
     def simulate(
         self,
         posted_ts: datetime,
-        candidates: list[Spread],
+        candidates: Sequence[Spread],
         provider: ChainProvider | None = None,
         *,
         bar_step: timedelta | None = None,
+        right: Literal["PUT", "CALL"] = "PUT",
     ) -> FillResult:
         p = provider if provider is not None else self.provider
         if p is None:
             raise ValueError("EntrySimulator requires a ChainProvider")
-        return simulate_fills(posted_ts, candidates, p, self.config, bar_step=bar_step)
+        return simulate_fills(posted_ts, candidates, p, self.config, bar_step=bar_step, right=right)
+
+
+def _bar_seed(bar_ts: datetime) -> int:
+    """Return a stable epoch-second seed for naive or aware datetimes."""
+    if bar_ts.tzinfo is not None:
+        bar_ts = bar_ts.astimezone(timezone.utc).replace(tzinfo=None)
+    return timegm(bar_ts.timetuple())

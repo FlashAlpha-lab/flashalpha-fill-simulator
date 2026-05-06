@@ -4,18 +4,18 @@ Tiny helpers to produce ChainSnapshot dicts and InMemoryChainProvider
 instances at well-defined prices. Tests should be readable in isolation:
 each builder call should make the test scenario self-evident.
 """
+
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date, datetime, timedelta
-from typing import Iterable
+from typing import Literal
 
 from fillsim import InMemoryChainProvider, Quote
 from fillsim.core import ChainSnapshot
 
 
-def make_snapshot(
-    legs: Iterable[tuple[date, float, float, float]]
-) -> ChainSnapshot:
+def make_snapshot(legs: Iterable[tuple[date, float, float, float]]) -> ChainSnapshot:
     """Build a ChainSnapshot from (expiry, strike, bid, ask) tuples.
 
     >>> snap = make_snapshot([
@@ -34,7 +34,7 @@ def make_quotes(
     legs_per_bar: list[list[tuple[float, float, float]]],
     *,
     bar_step: timedelta = timedelta(minutes=1),
-    right: str = "PUT",
+    right: Literal["PUT", "CALL"] = "PUT",
 ) -> list[Quote]:
     """Build a list of Quote objects from per-bar leg specs.
 
@@ -51,7 +51,7 @@ def make_quotes(
                     ts=ts,
                     expiry=expiry,
                     strike=strike,
-                    right=right,  # type: ignore[arg-type]
+                    right=right,
                     bid=bid,
                     ask=ask,
                 )

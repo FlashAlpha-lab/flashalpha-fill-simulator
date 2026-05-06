@@ -3,6 +3,7 @@
 Confirms the wrapper correctly integrates ``simulate_fill`` against an
 ``InMemoryChainProvider`` over a multi-bar wait window.
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
@@ -40,9 +41,9 @@ def test_fills_on_first_bar_that_crosses():
     # bar 0 (posted_ts itself) — outside window (start_offset_bars=1 by default)
     # bar 1: combo_bid = 1.40 - 0.95 = 0.45 ≥ 0.42 ✓; mid edge = -0.06 > -0.10 ✓ → fill
     legs_per_bar = [
-        [(440.0, 1.20, 1.25), (435.0, 0.85, 0.90)],   # bar 0 (skipped)
-        [(440.0, 1.40, 1.40), (435.0, 0.93, 0.95)],   # bar 1: fill here
-        [(440.0, 1.50, 1.55), (435.0, 0.85, 0.90)],   # bar 2 (not reached)
+        [(440.0, 1.20, 1.25), (435.0, 0.85, 0.90)],  # bar 0 (skipped)
+        [(440.0, 1.40, 1.40), (435.0, 0.93, 0.95)],  # bar 1: fill here
+        [(440.0, 1.50, 1.55), (435.0, 0.85, 0.90)],  # bar 2 (not reached)
     ]
     provider = make_provider(POSTED, EXPIRY, legs_per_bar)
     result = simulate_fills(POSTED, [cand], provider, cfg)
@@ -56,11 +57,11 @@ def test_no_fill_within_wait_window_returns_unfilled_with_bars_walked():
     cand = _spread(440, 435, 0.40)
     cfg = Config(fill_max_wait_bars=3)
     legs_per_bar = [
-        [(440.0, 1.20, 1.25), (435.0, 0.85, 0.90)],   # bar 0
-        [(440.0, 1.20, 1.25), (435.0, 0.85, 0.90)],   # bar 1
-        [(440.0, 1.20, 1.25), (435.0, 0.85, 0.90)],   # bar 2
-        [(440.0, 1.20, 1.25), (435.0, 0.85, 0.90)],   # bar 3
-        [(440.0, 1.20, 1.25), (435.0, 0.85, 0.90)],   # bar 4
+        [(440.0, 1.20, 1.25), (435.0, 0.85, 0.90)],  # bar 0
+        [(440.0, 1.20, 1.25), (435.0, 0.85, 0.90)],  # bar 1
+        [(440.0, 1.20, 1.25), (435.0, 0.85, 0.90)],  # bar 2
+        [(440.0, 1.20, 1.25), (435.0, 0.85, 0.90)],  # bar 3
+        [(440.0, 1.20, 1.25), (435.0, 0.85, 0.90)],  # bar 4
     ]
     provider = make_provider(POSTED, EXPIRY, legs_per_bar)
     result = simulate_fills(POSTED, [cand], provider, cfg)
@@ -76,10 +77,10 @@ def test_near_misses_accumulate_across_bars_before_fill():
     # Bar 2: combo_bid = 1.30 - 0.90 = 0.40 → near miss
     # Bar 3: combo_bid = 1.40 - 0.95 = 0.45 → fill (mid=0.46, edge=-0.06 > -0.10)
     legs_per_bar = [
-        [(440.0, 1.25, 1.30), (435.0, 0.85, 0.90)],   # bar 0 (skipped)
-        [(440.0, 1.30, 1.30), (435.0, 0.85, 0.90)],   # bar 1: NM
-        [(440.0, 1.30, 1.30), (435.0, 0.85, 0.90)],   # bar 2: NM
-        [(440.0, 1.40, 1.40), (435.0, 0.93, 0.95)],   # bar 3: FILL
+        [(440.0, 1.25, 1.30), (435.0, 0.85, 0.90)],  # bar 0 (skipped)
+        [(440.0, 1.30, 1.30), (435.0, 0.85, 0.90)],  # bar 1: NM
+        [(440.0, 1.30, 1.30), (435.0, 0.85, 0.90)],  # bar 2: NM
+        [(440.0, 1.40, 1.40), (435.0, 0.93, 0.95)],  # bar 3: FILL
     ]
     provider = make_provider(POSTED, EXPIRY, legs_per_bar)
     result = simulate_fills(POSTED, [cand], provider, cfg)

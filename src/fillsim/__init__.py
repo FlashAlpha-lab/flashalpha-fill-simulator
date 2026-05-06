@@ -27,6 +27,7 @@ Convenience loop API (when you have all the data offline)::
 
 Full behavioural contract: see ``docs/SPEC.md``.
 """
+
 from fillsim.config import Config
 from fillsim.core import (
     BarResult,
@@ -42,6 +43,7 @@ from fillsim.entry import EntrySimulator, simulate_fill, simulate_fills
 from fillsim.exit import ExitSimulator, expiry_settlement_pnl, simulate_patient_exit
 from fillsim.providers import (
     ChainProvider,
+    CSVChainProvider,
     InMemoryChainProvider,
     Quote,
 )
@@ -73,6 +75,7 @@ __all__ = [
     # Providers
     "ChainProvider",
     "Quote",
+    "CSVChainProvider",
     "InMemoryChainProvider",
     # Metadata
     "__version__",

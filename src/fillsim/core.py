@@ -4,8 +4,10 @@ These are the value types the simulator produces and consumes. They are
 deliberately light: no behaviour beyond derived properties (mid, name).
 Strategy logic — EV, Kelly sizing, candidate ranking — lives in user code.
 """
+
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from enum import Enum
@@ -14,7 +16,7 @@ from enum import Enum
 # at a single bar timestamp, indexed by (expiry, strike). Values are (bid, ask).
 # Callers must filter by right (PUT/CALL) before passing — the simulator does
 # not disambiguate by right.
-ChainSnapshot = dict[tuple[date, float], tuple[float, float]]
+ChainSnapshot = Mapping[tuple[date, float], tuple[float, float]]
 
 
 @dataclass(frozen=True)

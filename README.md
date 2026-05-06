@@ -68,15 +68,18 @@ This makes the simulator embed in:
 - **Custom backtesters** — drop-in replacement for naive `if combo_mid <= limit:` fill logic
 - **EOD strategies** — works the same way; the simulator doesn't assume any specific bar resolution
 
-For offline backtests with all the data up-front, a loop-driving convenience wrapper is also shipped:
+For offline backtests with all the data up-front, loop-driving convenience wrappers are also shipped. `right` defaults to `"PUT"` and can be set to `"CALL"` for call-spread chains:
 
 ```python
-from fillsim import simulate_fills, InMemoryChainProvider
+from fillsim import InMemoryChainProvider, simulate_fills
 
-result = simulate_fills(posted_ts, candidates, provider)
+provider = InMemoryChainProvider(quotes=[...])
+result = simulate_fills(posted_ts, candidates, provider, right="PUT")
 if result.filled:
     print(f"filled in {result.bars_waited} bars; saw {result.near_misses} near-misses")
 ```
+
+`CSVChainProvider` is available for tidy CSV exports with `ts`, `expiry`, `strike`, `right`, `bid`, and `ask` columns.
 
 ## Install
 
@@ -125,7 +128,7 @@ pip install -e ".[test]"
 pytest
 ```
 
-39 tests at v0.1.0; <1s wall time. Coverage targets: 90% on `entry.py` / `exit.py`, 100% on `filters.py`. The mandatory regression tests cover:
+50+ tests at v0.1.0; <1s wall time. CI enforces ruff, formatting, coverage, and type checks. The mandatory regression tests cover:
 
 1. **EV-oracle**: same-bar tiebreak never reverts to EV/rank ordering
 2. **Stale-quote**: invalid wide/crossed quotes cannot create fills
@@ -134,7 +137,7 @@ pytest
 
 ## Contributing
 
-PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) when it's written; until then: open an issue first to discuss, sign your commits with `git commit -s` (DCO).
+PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). For behavioral changes, update `docs/SPEC.md` and add a synthetic-chain regression test.
 
 Particularly wanted:
 

@@ -1,8 +1,10 @@
 """In-memory chain provider for tests and small offline runs."""
+
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date, datetime
-from typing import Iterable, Literal
+from typing import Literal
 
 from fillsim.providers.base import Quote
 

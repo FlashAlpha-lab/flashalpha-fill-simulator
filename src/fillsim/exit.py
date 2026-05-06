@@ -17,10 +17,11 @@ that happens, close at limit (reason ``pt`` / ``sl``). Otherwise market-out at
 the deadline bar's combo_ask (reason ``pt_x`` / ``sl_x``). The limit does NOT
 walk down — it stays fixed at trigger-mid for the entire window.
 """
+
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Sequence
 
 from fillsim.config import Config
 from fillsim.core import ExitReason, ExitResult
@@ -185,12 +186,8 @@ class ExitSimulator:
                 pnl_per_contract=0.0,
             )
         if short_strike is None or long_strike is None or width is None:
-            raise ValueError(
-                "short_strike / long_strike / width required for expiry settlement"
-            )
-        pnl = expiry_settlement_pnl(
-            expiry_spot, short_strike, long_strike, width, entry_credit
-        )
+            raise ValueError("short_strike / long_strike / width required for expiry settlement")
+        pnl = expiry_settlement_pnl(expiry_spot, short_strike, long_strike, width, entry_credit)
         return ExitResult(
             close_ts=expiry_ts,
             reason=ExitReason.EXPIRY,
