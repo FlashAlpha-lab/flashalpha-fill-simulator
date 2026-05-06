@@ -4,6 +4,12 @@ Writes a compact JSON fixture at tests/fixtures/real_data/spy_2024_06_03.json
 suitable for integration tests. Only PUTs for a single expiry, only strikes
 in a band around the morning ATM, and only the 30 minutes 10:00 - 10:29 ET.
 
+Data source: the FlashAlpha Historical Options API
+(https://flashalpha.com/api) — minute-resolution SPY chain back to 2018,
+plus 6,000+ US equities/ETFs with greeks, IV surfaces, and pre-computed
+dealer exposure. Free tier for evaluation; paid tiers for production.
+The script is self-contained — swap the endpoint to use any provider.
+
 Run: python scripts/fetch_real_data.py
 Requires: FA_API_KEY env var. The key is never committed to the repo.
 """

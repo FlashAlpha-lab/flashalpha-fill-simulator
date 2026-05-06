@@ -6,6 +6,30 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-06
+
+### Added
+
+- `CSVChainProvider` — drop-in `ChainProvider` for tidy option-quote CSV
+  exports (`ts`, `expiry`, `strike`, `right`, `bid`, `ask`). Loads in
+  memory; no third-party dependencies.
+- `py.typed` marker (PEP 561) — downstream type-checkers now consume the
+  shipped type information.
+- Property-based tests via Hypothesis covering quote-filter and
+  expiry-settlement invariants.
+- Real-data integration test suite driven by an SPY put-chain fixture
+  pulled from the FlashAlpha Historical Options API
+  (`tests/test_real_data_integration.py`, 11 scenarios; fixture is
+  checked in so the suite runs offline). Pins down the per-bar primitive,
+  loop wrapper, patient exit, expiry settlement, CSV round-trip, and
+  the bars-vs-elapsed-time semantics of `FillResult.bars_waited`.
+- `scripts/fetch_real_data.py` — reproducible fixture-pull script.
+
+### Changed
+
+- Test count: 66 passing + 1 documented xfail (NaN-quote contract gap),
+  still under 2s wall time.
+
 ## [0.1.0] - 2026-04-29
 
 Initial release. Extracted from FlashAlpha's internal SPY VRP-harvest backtester.

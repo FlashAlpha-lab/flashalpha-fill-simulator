@@ -128,12 +128,22 @@ pip install -e ".[test]"
 pytest
 ```
 
-50+ tests at v0.1.0; <1s wall time. CI enforces ruff, formatting, coverage, and type checks. The mandatory regression tests cover:
+60+ tests, <2s wall time. CI enforces ruff, formatting, coverage, and type checks. The mandatory regression tests cover:
 
 1. **EV-oracle**: same-bar tiebreak never reverts to EV/rank ordering
 2. **Stale-quote**: invalid wide/crossed quotes cannot create fills
 3. **Exit realism**: patient exit does not walk the limit down
 4. **Boundary**: every threshold (`fill_epsilon`, `min_edge_floor`, `exit_max_wait_bars`) has a test asserting the correct boundary semantics
+
+### Real-data integration tests
+
+Beyond the synthetic-chain unit tests, the suite includes 11 integration scenarios driven by **real SPY put-chain data** ([`tests/fixtures/real_data/spy_2024_06_03.json`](tests/fixtures/real_data/spy_2024_06_03.json)). The fixture is checked in so the suite runs offline, but it was pulled minute-by-minute from the [**FlashAlpha Historical Options API**](https://flashalpha.com/api) — the same data product the simulator was originally tuned against:
+
+```bash
+FA_API_KEY=... python scripts/fetch_real_data.py
+```
+
+If you want to run the simulator against your own quotes, [`historical.flashalpha.com`](https://flashalpha.com/articles/historical-options-chain-api-any-strike-any-minute-since-2018) covers SPY at 1-min resolution since 2018 plus 6,000+ US equities/ETFs, with greeks, IV surfaces, and dealer exposure pre-computed. Free for evaluation; paid plans for production. The fetch script is self-contained — adapt it to any chain provider you prefer.
 
 ## Contributing
 

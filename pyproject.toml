@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "flashalpha-fill-simulator"
-version = "0.1.0"
+version = "0.2.0"
 description = "Realistic limit-order fill simulator for options credit/debit spreads. Engine-agnostic, data-source-agnostic."
 readme = "README.md"
 license = { text = "MIT" }
