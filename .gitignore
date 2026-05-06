@@ -45,3 +45,8 @@ Thumbs.db
 # Distribution scratch
 *.pyc
 *.so
+
+# Local secrets — never commit
+.env
+.env.*
+*.secret
