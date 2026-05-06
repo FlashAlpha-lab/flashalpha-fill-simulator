@@ -1,0 +1,47 @@
+# Build / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+wheels/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Bytecode / venvs
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+ENV/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.cache/
+.hypothesis/
+
+# Type checkers
+.mypy_cache/
+.ruff_cache/
+.pyre/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Distribution scratch
+*.pyc
+*.so
