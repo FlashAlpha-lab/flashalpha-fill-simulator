@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "flashalpha-fill-simulator"
-version = "0.2.0"
+version = "0.2.1"
 description = "Realistic limit-order fill simulator for options credit/debit spreads. Engine-agnostic, data-source-agnostic."
 readme = "README.md"
 license = { text = "MIT" }
@@ -35,11 +35,11 @@ test = ["pytest>=7", "pytest-cov>=4", "hypothesis>=6"]
 dev  = ["ruff>=0.5", "mypy>=1.8"]
 
 [project.urls]
-Homepage      = "https://github.com/flashalpha/flashalpha-fill-simulator"
-Documentation = "https://github.com/flashalpha/flashalpha-fill-simulator/blob/main/docs/SPEC.md"
-Repository    = "https://github.com/flashalpha/flashalpha-fill-simulator"
-Issues        = "https://github.com/flashalpha/flashalpha-fill-simulator/issues"
-Changelog     = "https://github.com/flashalpha/flashalpha-fill-simulator/blob/main/CHANGELOG.md"
+Homepage      = "https://github.com/FlashAlpha-lab/flashalpha-fill-simulator"
+Documentation = "https://github.com/FlashAlpha-lab/flashalpha-fill-simulator/blob/master/docs/SPEC.md"
+Repository    = "https://github.com/FlashAlpha-lab/flashalpha-fill-simulator"
+Issues        = "https://github.com/FlashAlpha-lab/flashalpha-fill-simulator/issues"
+Changelog     = "https://github.com/FlashAlpha-lab/flashalpha-fill-simulator/blob/master/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fillsim"]

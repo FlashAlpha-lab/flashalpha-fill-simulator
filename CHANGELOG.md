@@ -6,6 +6,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-05-06
+
+### Fixed
+
+- `[project.urls]` in `pyproject.toml` pointed at `github.com/flashalpha/...`
+  (404). Corrected to `github.com/FlashAlpha-lab/...` so PyPI's project-page
+  links — Homepage, Repository, Issues, Documentation, Changelog — resolve.
+
 ## [0.2.0] - 2026-05-06
 
 ### Added
