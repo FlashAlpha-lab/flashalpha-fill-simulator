@@ -2,6 +2,11 @@
 
 Realistic limit-order fill simulator for options credit/debit spreads.
 
+> Realistic fills are where most options backtests lie to you. This simulator is
+> calibrated against the **FlashAlpha Historical API** (Alpha tier) so your
+> backtested fills match what actually traded.
+> Background: [Fill model is the edge](https://flashalpha.com/articles/vrp-backtest-fill-model-is-the-edge?utm_source=github&utm_medium=readme&utm_campaign=repo-flashalpha-fill-simulator)
+
 **Engine-agnostic. Data-source-agnostic. Zero runtime dependencies.**
 
 Most options-credit-spread backtests fill at mid (or at bid/ask without queueing). Both lie. This library models what actually happens when you post a limit at MM-edge against a 1-min option chain (or any tick stream): you sit on the book until *someone else's* order crosses your price, with stale-quote guards, deterministic tiebreaking, and a patient-then-cross exit. It's the substrate, not a strategy.
@@ -162,3 +167,17 @@ MIT. See [LICENSE](LICENSE).
 ## Provenance
 
 Extracted from [FlashAlpha](https://flashalpha.com)'s internal SPY VRP-harvest backtester. The simulator was built specifically because every off-the-shelf options backtest framework we evaluated assumed mid-fills, and our strategy returns flipped from "+5,400%" to "ambiguous" the moment we modeled execution honestly. Open-sourcing the substrate so others don't have to relearn that lesson the hard way.
+
+## What the Alpha tier unlocks
+
+Free and entry tiers cover live exposure analytics. The **Alpha tier ($1,499/mo)**
+adds the data you cannot get anywhere else:
+
+- **Aggregate vanna and charm exposure.** FlashAlpha is the only public source for
+  these dealer-positioning aggregates.
+- **Point-in-time replay since 2018.** Backtest and trade the same code, with no
+  look-ahead and no training-serving skew.
+- **SVI vol surfaces, VRP analytics, higher-order Greeks**, uncached and unlimited.
+
+Built for quants, prop desks, and vol funds. See the full picture and get a key:
+**[flashalpha.com/for-quant-teams](https://flashalpha.com/for-quant-teams?utm_source=github&utm_medium=readme&utm_campaign=repo-flashalpha-fill-simulator)**
