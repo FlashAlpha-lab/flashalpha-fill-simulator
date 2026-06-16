@@ -168,16 +168,18 @@ MIT. See [LICENSE](LICENSE).
 
 Extracted from [FlashAlpha](https://flashalpha.com)'s internal SPY VRP-harvest backtester. The simulator was built specifically because every off-the-shelf options backtest framework we evaluated assumed mid-fills, and our strategy returns flipped from "+5,400%" to "ambiguous" the moment we modeled execution honestly. Open-sourcing the substrate so others don't have to relearn that lesson the hard way.
 
-## What the Alpha tier unlocks
+## What the paid tiers unlock
 
-Free and entry tiers cover live exposure analytics. The **Alpha tier ($1,499/mo)**
-adds the data you cannot get anywhere else:
+The free tier covers single-expiry GEX on equities, key levels, the BSM Greeks/IV
+calculator and stock quotes. Paid tiers add:
 
-- **Aggregate vanna and charm exposure.** FlashAlpha is the only public source for
-  these dealer-positioning aggregates.
-- **Point-in-time replay since 2018.** Backtest and trade the same code, with no
-  look-ahead and no training-serving skew.
-- **SVI vol surfaces, VRP analytics, higher-order Greeks**, uncached and unlimited.
+- **DEX, VEX (vanna) and CHEX (charm) exposure, plus max pain** — from the **Basic tier**
+  ($79/mo), with ETF and index symbols.
+- **Full-chain GEX, 0DTE and flow analytics** — from the **Growth tier** ($299/mo).
+- **Point-in-time replay since 2018, SVI vol surfaces, VRP analytics, higher-order Greeks**,
+  uncached and unlimited — the **Alpha tier** ($1,499/mo). FlashAlpha is one of the only
+  public APIs publishing aggregate vanna and charm exposure across the full universe, with
+  no look-ahead and no training-serving skew.
 
 Built for quants, prop desks, and vol funds. See the full picture and get a key:
 **[flashalpha.com/for-quant-teams](https://flashalpha.com/for-quant-teams?utm_source=github&utm_medium=readme&utm_campaign=repo-flashalpha-fill-simulator)**
