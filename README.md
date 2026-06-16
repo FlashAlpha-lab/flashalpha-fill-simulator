@@ -120,6 +120,20 @@ These are intentional simplifications. See [docs/SPEC.md §7](docs/SPEC.md#7-wha
 - Pin risk at expiry (linear interpolation only)
 - Hard exchange halts
 
+## Futures (CME equity-index)
+
+The simulator is symbol-agnostic — feed it any option chain, including **CME equity-index futures**. FlashAlpha serves the full options-analytics stack for **`ES=F`** (E-mini S&P 500) and **`NQ=F`** (E-mini Nasdaq-100); options-on-futures are priced with **Black-76** (forward-priced) using the correct CME contract multipliers. Everything that works for an equity works for futures: gamma exposure (GEX), DEX, VEX, CHEX, key levels, max pain, the IV surface, exposure summary, narrative, and live flow.
+
+Pull a futures option chain to feed `simulate_fill(...)` straight from the FlashAlpha API:
+
+```bash
+# Option quotes for the E-mini S&P 500 future (note the %3D-encoded '=')
+curl -H "X-Api-Key: $FLASHALPHA_API_KEY" \
+  "https://lab.flashalpha.com/optionquote/ES%3DF"
+```
+
+Use the `=F` suffix — bare `ES`/`NQ` are equities, not futures. In raw REST paths URL-encode the `=` as `%3D` (e.g. `GET /v1/exposure/gex/ES%3DF`); SDK methods take the plain string `"ES=F"`. Historical replay for futures is coming; live analytics are available now.
+
 ## Documentation
 
 - **[docs/SPEC.md](docs/SPEC.md)** — full behavioural contract. Read this before relying on any number the simulator produces.
