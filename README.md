@@ -162,7 +162,7 @@ Beyond the synthetic-chain unit tests, the suite includes 11 integration scenari
 FA_API_KEY=... python scripts/fetch_real_data.py
 ```
 
-If you want to run the simulator against your own quotes, [`historical.flashalpha.com`](https://flashalpha.com/articles/historical-options-chain-api-any-strike-any-minute-since-2018) covers SPY at 1-min resolution since 2018 plus 6,000+ US equities/ETFs, with greeks, IV surfaces, and dealer exposure pre-computed. Free for evaluation; paid plans for production. The fetch script is self-contained — adapt it to any chain provider you prefer.
+If you want to run the simulator against your own quotes, [`historical.flashalpha.com`](https://flashalpha.com/articles/historical-options-chain-api-any-strike-any-minute-since-2018) covers SPY at 1-min resolution since 2017 plus 6,000+ US equities/ETFs, with greeks, IV surfaces, and dealer exposure pre-computed. Free for evaluation; paid plans for production. The fetch script is self-contained — adapt it to any chain provider you prefer.
 
 ## Contributing
 
@@ -190,7 +190,7 @@ calculator and stock quotes. Paid tiers add:
 - **DEX, VEX (vanna) and CHEX (charm) exposure, plus max pain** — from the **Basic tier**
   ($79/mo), with ETF and index symbols.
 - **Full-chain GEX, 0DTE and flow analytics** — from the **Growth tier** ($299/mo).
-- **Point-in-time replay since 2018, SVI vol surfaces, VRP analytics, higher-order Greeks**,
+- **Point-in-time replay since 2017, SVI vol surfaces, VRP analytics, higher-order Greeks**,
   uncached and unlimited — the **Alpha tier** ($1,499/mo). FlashAlpha is one of the only
   public APIs publishing aggregate vanna and charm exposure across the full universe, with
   no look-ahead and no training-serving skew.
