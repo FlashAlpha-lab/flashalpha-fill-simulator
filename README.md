@@ -216,6 +216,10 @@ Particularly wanted:
 
 MIT. See [LICENSE](LICENSE).
 
+## Simulate sell-window trades
+
+[sell-window](https://flashalpha.com/docs/lab-api-strategies-sell-window?utm_source=github&utm_medium=readme&utm_campaign=repo-flashalpha-fill-simulator&utm_content=sell-window) answers "should you sell options today?" for SPY, QQQ and IWM, and on a sell it lists the trades with strikes and quotes. Its [backtest](https://flashalpha.com/articles/sell-window-backtest-every-trade-2018-2026?utm_source=github&utm_medium=readme&utm_campaign=repo-flashalpha-fill-simulator&utm_content=sell-window) fills halfway to the bid or ask at $1 a contract. To test those trades under your own fill assumptions, pass the legs and quotes from the response to this simulator.
+
 ## Provenance
 
 Extracted from [FlashAlpha](https://flashalpha.com)'s internal SPY VRP-harvest backtester. The simulator was built specifically because every off-the-shelf options backtest framework we evaluated assumed mid-fills, and our strategy returns flipped from "+5,400%" to "ambiguous" the moment we modeled execution honestly. Open-sourcing the substrate so others don't have to relearn that lesson the hard way.
